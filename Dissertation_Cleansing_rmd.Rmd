@@ -1,0 +1,433 @@
+---
+title: "Dissertation_Cleansing"
+author: "Sreelekshmi_Sreekumar"
+date: "2023-08-25"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+library(lubridate)
+library(data.table)
+library(tidyverse)
+library(mice)
+```
+
+# ANDHRA PRADESH CLEANSING
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+data_2008 <- read.csv("cpcb_dly_aq_andhra_pradesh-2008.csv")
+data_2008$Sampling.Date <- dmy(data_2008$Sampling.Date)
+data_2008$Sampling.Date <- as.Date(data_2008$Sampling.Date)
+#summary(data_2008)
+df_2008 <- setorder(data_2008,Sampling.Date)
+#df_2008
+df_2008 <- na.omit(df_2008)
+df_2008$month <- format(as.Date(df_2008$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2008_s <- df_2008 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2008_spatial <- df_2008_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2008_s_ap <- 
+  dplyr :: select(df_2008_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2008_s_ap$Year <- 2008
+df_2008_t <- df_2008 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2008_t$day <- 15
+df_2008_t$year <- 2008
+df1<-data.frame(df_2008_t$year,df_2008_t$month,df_2008_t$day)
+#df1
+df_2008_t$Date<-as.Date(with(df1,paste(df_2008_t.year,df_2008_t.month,df_2008_t.day,sep="-")),"%Y-%m-%d")
+#df_2008_t
+#summary(df_2008_t)
+df_2008_t$month <- NULL
+df_2008_t$day <- NULL
+df_2008_t$year <- NULL
+df_2008 <- data.frame(df_2008_t$RSPM.PM10,df_2008_t$Date)
+df_2008 <- df_2008 %>% rename(Date = 'df_2008_t.Date', RSPM.PM10 = 'df_2008_t.RSPM.PM10')
+#################################################################
+data_2009 <- read.csv("cpcb_dly_aq_andhra_pradesh-2009.csv")
+data_2009$Sampling.Date <- dmy(data_2009$Sampling.Date)
+data_2009$Sampling.Date <- as.Date(data_2009$Sampling.Date)
+#summary(data_2009)
+df_2009 <- setorder(data_2009,Sampling.Date)
+#df_2009
+df_2009$month <- format(as.Date(df_2009$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2009 <- na.omit(df_2009)
+df_2009_s <- df_2009 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2009_spatial <- df_2009_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2009_s_ap <- 
+  dplyr :: select(df_2009_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2009_s_ap$Year <- 2009
+df_2009_t <- df_2009 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2009_t$day <- 15
+df_2009_t$year <- 2009
+df2<-data.frame(df_2009_t$year,df_2009_t$month,df_2009_t$day)
+#df2
+df_2009_t$Date<-as.Date(with(df2,paste(df_2009_t.year,df_2009_t.month,df_2009_t.day,sep="-")),"%Y-%m-%d")
+#df_2009_t
+df_2009_t$month <- NULL
+df_2009_t$day <- NULL
+df_2009_t$year <- NULL
+df_2009 <- data.frame(df_2009_t$RSPM.PM10,df_2009_t$Date)
+df_2009 <- df_2009 %>% rename(Date = 'df_2009_t.Date', RSPM.PM10 = 'df_2009_t.RSPM.PM10')
+#########################################################
+data_2010 <- read.csv("cpcb_dly_aq_andhra_pradesh-2010.csv")
+data_2010$Sampling.Date <- dmy(data_2010$Sampling.Date)
+data_2010$Sampling.Date <- as.Date(data_2010$Sampling.Date)
+#summary(data_2010)
+df_2010 <- setorder(data_2010,Sampling.Date)
+#df_2010
+df_2010$month <- format(as.Date(df_2010$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2010$SPM = NULL
+df_2010 <- na.omit(df_2010)
+df_2010_s <- df_2010 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2010_t <- df_2010 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2010_t$day <- 15
+df_2010_t$year <- 2010
+df3<-data.frame(df_2010_t$year,df_2010_t$month,df_2010_t$day)
+#df3
+df_2010_t$Date<-as.Date(with(df3,paste(df_2010_t.year,df_2010_t.month,df_2010_t.day,sep="-")),"%Y-%m-%d")
+#df_2010_t
+df_2010_t$month <- NULL
+df_2010_t$day <- NULL
+df_2010_t$year <- NULL
+df_2010 <- data.frame(df_2010_t$RSPM.PM10,df_2010_t$Date)
+df_2010 <- df_2010 %>% rename(Date = 'df_2010_t.Date', RSPM.PM10 = 'df_2010_t.RSPM.PM10')
+df_2010_spatial <- df_2010_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2010_s_ap <- 
+  dplyr :: select(df_2010_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2010_s_ap$Year <- 2010
+#######################################################
+data_2012 <- read.csv("cpcb_dly_aq_andhra_pradesh-2012.csv")
+data_2012$Sampling.Date <- dmy(data_2012$Sampling.Date)
+data_2012$Sampling.Date <- as.Date(data_2012$Sampling.Date)
+#summary(data_2012)
+df_2012 <- setorder(data_2012,Sampling.Date)
+#df_2012
+df_2012$month <- format(as.Date(df_2012$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2012$SPM <- NULL
+df_2012 <- na.omit(df_2012)
+df_2012_s <- df_2012 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2012_spatial <- df_2012_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2012_s_ap <- 
+  dplyr :: select(df_2012_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2012_s_ap$Year <- 2012
+df_2012_t <- df_2012 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2012_t$day <- 15
+df_2012_t$year <- 2012
+df5<-data.frame(df_2012_t$year,df_2012_t$month,df_2012_t$day)
+#df5
+df_2012_t$Date<-as.Date(with(df5,paste(df_2012_t.year,df_2012_t.month,df_2012_t.day,sep="-")),"%Y-%m-%d")
+#df_2012_t
+df_2012_t$month <- NULL
+df_2012_t$day <- NULL
+df_2012_t$year <- NULL
+df_2012 <- data.frame(df_2012_t$RSPM.PM10,df_2012_t$Date)
+df_2012 <- df_2012 %>% rename(Date = 'df_2012_t.Date', RSPM.PM10 = 'df_2012_t.RSPM.PM10')
+###################################################
+data_2013 <- read.csv("cpcb_dly_aq_andhra_pradesh-2013.csv")
+data_2013$Sampling.Date <- dmy(data_2013$Sampling.Date)
+data_2013$Sampling.Date <- as.Date(data_2013$Sampling.Date)
+#summary(data_2013)
+df_2013 <- setorder(data_2013,Sampling.Date)
+#df_2013
+df_2013$month <- format(as.Date(df_2013$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2013$SPM <- NULL
+df_2013 <- na.omit(df_2013)
+df_2013_s <- df_2013 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2013_spatial <- df_2013_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2013_s_ap <- 
+  dplyr :: select(df_2013_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2013_s_ap$Year <- 2013
+df_2013_t <- df_2013 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+
+df_2013_t$day <- 15
+df_2013_t$year <- 2013
+df6<-data.frame(df_2013_t$year,df_2013_t$month,df_2013_t$day)
+#df6
+df_2013_t$Date<-as.Date(with(df6,paste(df_2013_t.year,df_2013_t.month,df_2013_t.day,sep="-")),"%Y-%m-%d")
+#df_2013_t
+df_2013_t$month <- NULL
+df_2013_t$day <- NULL
+df_2013_t$year <- NULL
+df_2013 <- data.frame(df_2013_t$RSPM.PM10,df_2013_t$Date)
+df_2013 <- df_2013 %>% rename(Date = 'df_2013_t.Date', RSPM.PM10 = 'df_2013_t.RSPM.PM10')
+###############################################
+data_2014 <- read.csv("cpcb_dly_aq_andhra_pradesh-2014.csv")
+data_2014$Sampling.Date <- dmy(data_2014$Sampling.Date)
+data_2014$Sampling.Date <- as.Date(data_2014$Sampling.Date)
+#summary(data_2014)
+df_2014 <- setorder(data_2014,Sampling.Date)
+#df_2014
+df_2014$month <- format(as.Date(df_2014$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2014$PM.2.5 <- NULL
+df_2014 <- na.omit(df_2014)
+df_2014_s <- df_2014 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2014_spatial <- df_2014_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2014_s_ap <- 
+  dplyr :: select(df_2014_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2014_s_ap$Year <- 2014
+df_2014_t <- df_2014 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2014_t$day <- 15
+df_2014_t$year <- 2014
+df7<-data.frame(df_2014_t$year,df_2014_t$month,df_2014_t$day)
+#df7
+df_2014_t$Date<-as.Date(with(df7,paste(df_2014_t.year,df_2014_t.month,df_2014_t.day,sep="-")),"%Y-%m-%d")
+#df_2014_t
+df_2014_t$month <- NULL
+df_2014_t$day <- NULL
+df_2014_t$year <- NULL
+df_2014 <- data.frame(df_2014_t$RSPM.PM10,df_2014_t$Date)
+df_2014 <- df_2014 %>% rename(Date = 'df_2014_t.Date', RSPM.PM10 = 'df_2014_t.RSPM.PM10')
+################################################
+data_2015 <- read.csv("cpcb_dly_aq_andhra_pradesh-2015.csv")
+data_2015$Sampling.Date <- dmy(data_2015$Sampling.Date)
+data_2015$Sampling.Date <- as.Date(data_2015$Sampling.Date)
+#summary(data_2015)
+df_2015 <- setorder(data_2015,Sampling.Date)
+#df_2015
+df_2015$month <- format(as.Date(df_2015$Sampling.Date, format="%Y/%m/%d"),"%m")
+df_2015$PM.2.5 <- NULL
+df_2015 <- na.omit(df_2015)
+df_2015_s <- df_2015 %>% group_by(month,City.Town.Village.Area) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2015_spatial <- df_2015_s %>% group_by(City.Town.Village.Area)%>% 
+  summarise(S02=mean(S02),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2015_s_ap <- 
+  dplyr :: select(df_2015_spatial,c(City.Town.Village.Area, RSPM.PM10))
+df_2015_s_ap$Year <- 2015
+df_2015_t <- df_2015 %>% group_by(month) %>% 
+  summarise(S02=mean(SO2),
+            NO2= mean(NO2),
+            RSPM.PM10= mean(RSPM.PM10),
+            #SPM= mean(SPM),
+            .groups = 'drop') %>%
+  as.data.frame()
+df_2015_t$day <- 15
+df_2015_t$year <- 2015
+df8<-data.frame(df_2015_t$year,df_2015_t$month,df_2015_t$day)
+#df8
+df_2015_t$Date<-as.Date(with(df8,paste(df_2015_t.year,df_2015_t.month,df_2015_t.day,sep="-")),"%Y-%m-%d")
+#df_2015_t
+df_2015_t$month <- NULL
+df_2015_t$day <- NULL
+df_2015_t$year <- NULL
+df_2015 <- data.frame(df_2015_t$RSPM.PM10,df_2015_t$Date)
+df_2015 <- df_2015 %>% rename(Date = 'df_2015_t.Date', RSPM.PM10 = 'df_2015_t.RSPM.PM10')
+######################################################
+data_ap <- rbind(df_2008,df_2009,df_2010,df_2012,
+                 df_2013,df_2014,df_2015)
+###########################################
+month <- 1:12
+day <- 15
+year <- 2011
+df_trial <- cbind(year,month,day)
+Date <- as.Date(paste(year,month,day,sep="-"),"%Y-%m-%d")
+RSPM.PM10 <- NA
+df9<- data.frame(year,month,day) 
+#df9
+df_2011 <- data.frame()
+df_2011_t = data.frame(matrix(nrow = 12, ncol = 2))
+df_2011_t$Date <- NULL
+df_2011_t$Date<-as.Date(with(df9,paste(year,month,day,sep="-")),"%Y-%m-%d")
+#df_2011_t
+df_2011 <- data.frame(RSPM.PM10,df_2011_t$Date)
+df_2011 <- df_2011 %>% rename(Date = 'df_2011_t.Date')
+#df_2011
+############################################################
+data_ap <- rbind(df_2008,df_2009,df_2010,df_2011,df_2012,
+                    df_2013,df_2014,df_2015)
+###########################################################
+data <- data_ap
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+imp_model <- mice(data, m = 10, method = "pmm", seed = 123)
+# Perform the imputation
+imp_data <- mice::complete(imp_model)
+#print(imp_data)
+############################################################
+pm10_ap <- ts(imp_data$RSPM.PM10, start=c(2008, 1), end=c(2015, 1), frequency=12)
+plot(pm10_ap, xlab = "Year", ylab = "PM10 Level", main = "Time Series Plot for Andhra Pradesh PM10 Concentration")
+data_ap <- imp_data
+write.csv(data_ap,"andhra_ts.csv")
+my_date_year <- format(data_ap$Date, "%Y")            
+#my_date_year 
+data_ap$Year <- my_date_year
+ts_year_ap <- data_ap %>% group_by(Year) %>% 
+  summarise(RSPM.PM10= mean(RSPM.PM10),
+            .groups = 'drop') %>%
+  as.data.frame()
+write.csv(ts_year_ap,"ts_year_ap.csv")
+#############################################################3
+spatial_ap <- rbind(df_2008_s_ap,df_2009_s_ap,df_2010_s_ap,
+                    df_2012_s_ap,df_2013_s_ap,df_2014_s_ap,df_2015_s_ap)
+write.csv(spatial_ap,"spatial_ap.csv")
+df_spatial_ap <- read.csv("spatial_ap.csv")
+df_spatial_ap_n <- df_spatial_ap  %>% mutate(Latitude = 1, Longitude = 1) %>% rename(Monitoring.Station = 'City.Town.Village.Area')
+df_spatial_ap_n$Latitude[df_spatial_ap_n$Monitoring.Station == 'Kurnool'] <- 15.815569
+df_spatial_ap_n$Longitude[df_spatial_ap_n$Monitoring.Station == 'Kurnool'] <- 78.035445
+df_spatial_ap_n$Latitude[df_spatial_ap_n$Monitoring.Station == 'Vijayawada'] <- 16.5062
+df_spatial_ap_n$Longitude[df_spatial_ap_n$Monitoring.Station == 'Vijayawada'] <- 80.6480
+df_spatial_ap_n$Latitude[df_spatial_ap_n$Monitoring.Station == 'Visakhapatnam'] <- 17.6868
+df_spatial_ap_n$Longitude[df_spatial_ap_n$Monitoring.Station == 'Visakhapatnam'] <- 83.2185
+df_spatial_ap_n <- df_spatial_ap_n %>% filter(Monitoring.Station == 'Kurnool' | Monitoring.Station == 'Vijayawada' |
+                                                Monitoring.Station == 'Visakhapatnam' )
+row <- ts_year_ap %>% filter(Year == 2011)
+df_spatial_ap_n <- df_spatial_ap_n %>% 
+  add_row(Monitoring.Station = "Vijayawada", RSPM.PM10=row$RSPM.PM10, Year = 2011,
+          Latitude = 15.82  , Longitude = 78.04)
+write.csv(df_spatial_ap_n,"spatial_ap.csv")
+#summary(df_spatial_ap_n)
+
+
+```
+
+# Similarly Data Cleansing has been done on other states
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,821 @@
+---
+title: "SpatialModeling"
+author: "Sreelekshmi_Sreekumar"
+date: "2023-08-22"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+library(raster)
+library(INLA)
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(viridis)
+library(gridExtra)  
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2008)
+d_spatial_model <- d_spatial_model[-4:-6,]
+#nrow(d_spatial_model)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+mesh$n
+plot(mesh)
+points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            #measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Prediction for year 2008") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2015)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+#plot(mesh)
+#points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+
+formula <- y ~  b0 + f(s, model = spde)
+
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            #measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Prediction for year 2015") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2009)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+# plot(mesh)
+# points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2009") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2010)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+# plot(mesh)
+# points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+# summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+# library(reshape2)
+# library(viridis)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2010") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2011)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+# plot(mesh)
+# points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2011") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2012)
+d_spatial_model <- d_spatial_model[-4:-6,]
+#nrow(d_spatial_model)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+# plot(mesh)
+# points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2012") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2013)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+# plot(mesh)
+# points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2013") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      # Number of distinct colors in the scale
+                     limits = c(0, 350), # Set the color scale limits
+                     
+  ) +
+  theme_bw()
+```
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_spatial_model <- read.csv("d_spatial_model.csv")
+#print(d_spatial_model)
+d_spatial_model$X <- NULL
+d_spatial_model$District <- NULL
+d_spatial_model <- subset(d_spatial_model, Year == 2014)
+#summary(d_spatial_model)
+m <- getData(name = "GADM", country = "India", level = 0)
+#plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+#ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+#ggplot(m) + geom_sf() + theme_bw() 
+coo <- cbind(d_spatial_model$long,d_spatial_model$lat)
+mesh <- inla.mesh.2d(loc=coo, max.edge = c(1,5),cutoff = 0.5)
+#mesh$n
+#plot(mesh)
+#points(coo,col = "red")
+spde <- inla.spde2.matern(mesh = mesh, alpha = 2)
+indexs <- inla.spde.make.index("s",spde$n.spde)
+#lengths(indexs)
+A <- inla.spde.make.A(mesh = mesh,loc = coo)
+#dim(A)
+bb <- st_bbox(m)
+x <- seq(bb$xmin - 1, bb$xmax + 1, length.out = 50)
+y <- seq(bb$ymin - 1, bb$ymax + 1, length.out = 50)
+dp <- as.matrix(expand.grid(x, y))
+#plot(dp, asp = 1)
+p <- st_as_sf(data.frame(x = dp[, 1], y = dp[, 2]),
+              coords = c("x", "y")
+)
+st_crs(p) <- st_crs(4326)
+ind <- st_intersects(m, p)
+dp <- dp[ind[[1]], ]
+#plot(dp, asp = 1)
+coop <- dp
+Ap <- inla.spde.make.A(mesh = mesh,loc = coop)
+stk.e <- inla.stack(
+  tag = "est",
+  data = list(y = d_spatial_model$RSPM.PM10),
+  A = list(1, A),
+  effects = list(data.frame(b0 = rep(1, nrow(d_spatial_model))), s = indexs)
+)
+stk.p <- inla.stack(
+  tag = "pred",
+  data = list(y = NA),
+  A = list(1, Ap),
+  effects = list(data.frame(b0 = rep(1, nrow(dp))), s = indexs)
+)
+stk.full <- inla.stack(stk.e, stk.p)
+formula <- y ~  b0 + f(s, model = spde)
+res <- inla(formula, family = "Gaussian",
+            data = inla.stack.data(stk.full),
+            control.predictor = list(
+              compute = TRUE,
+              A = inla.stack.A(stk.full)
+            )
+)
+
+#summary(res)
+index <- inla.stack.index(stack = stk.full,tag = "pred")$data
+#print(index)
+dp <- data.frame(dp)
+#summary(dp)
+names(dp) <- c("x", "y")
+dp$pm10_mean <- res$summary.fitted.values[index,"mean"]
+dp$pm10_ll <- res$summary.fitted.values[index,"0.025quant"]
+dp$pm10_ul <- res$summary.fitted.values[index,"0.975quant"]
+#print(dp)
+dpm <- melt(dp,
+            id.vars = c("x", "y"),
+            #measure.vars = c("pm10_mean", "pm10_ll", "pm10_ul")
+            measure.vars = c("pm10_mean")
+)
+#head(dpm)
+#summary(dpm)
+ ggplot(m) +
+  geom_sf() +
+  coord_sf(datum = NA) +
+  geom_tile(data = dpm, aes(x = x, y = y, fill = value)) +
+  labs(x = "", y = "", title = "Mean for year 2014") +
+  facet_wrap(~variable) +
+  scale_fill_viridis(name = "PM10", 
+                     n = 10,      
+                     limits = c(0, 350), 
+                     
+  ) +
+  theme_bw()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.fullwidth=TRUE,fig.cap = "Figure _ :Mean Distribution of PM10 Concentration from Years 2009 to 2011"}
+#grid.arrange(g_2009, g_2010,g_2011, ncol = 3) 
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.fullwidth=TRUE,fig.cap = "Figure _ : Mean Distribution of PM10 Concentration from Years 2012 to 2014"}
+#grid.arrange(g_2012, g_2013, g_2014, ncol = 3)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+```
+
+

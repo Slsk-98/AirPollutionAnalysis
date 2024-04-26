@@ -1,0 +1,1676 @@
+---
+title: "Exploratory_Data_Analysis"
+author: "Sreelekshmi_Sreekumar"
+date: "2023-08-22"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(lwgeom)
+library(raster)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(INLA)
+library(tidyverse)
+library(kableExtra)
+library(gridExtra) 
+
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+m <- getData(name = "GADM", country = "India", level = 0)
+plot(m)
+m <- m %>%
+  st_as_sf() %>%
+  st_cast("POLYGON") %>%
+  mutate(area = st_area(.)) %>%
+  arrange(desc(area)) %>%
+  slice(1)
+ggplot(m) + geom_sf() + theme_bw()
+m <- m %>% st_transform(crs = st_crs(4326))
+ggplot(m) + geom_sf() + theme_bw() + coord_sf(crs = st_crs(4326))
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_2008 <- read.csv("df_2008_spatial.csv")
+d_2008 <- d_2008[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2008_delhi <- read.csv("delhi_spatial.csv")
+d_2008_delhi <- d_2008_delhi %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+              relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_delhi$X <- NULL
+d_2008_delhi$Year <- NULL
+###########################################
+d_2008_mp <- read.csv("spatial_mp.csv")
+d_2008_mp <- d_2008_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_mp <- d_2008_mp %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_mp$X <- NULL
+d_2008_mp$Year <- NULL
+#############################################
+d_2008_ap <- read.csv("spatial_ap.csv")
+d_2008_ap <- d_2008_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_ap <- d_2008_ap %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_ap$X <- NULL
+d_2008_ap$Year <- NULL
+########################################
+d_2008_gujarat <- read.csv("spatial_gujarat.csv")
+d_2008_gujarat <- d_2008_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_gujarat <- d_2008_gujarat %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_gujarat$X <- NULL
+d_2008_gujarat$Year <- NULL
+###########################################
+d_2008_assam <- read.csv("spatial_assam.csv")
+d_2008_assam <- d_2008_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_assam <- d_2008_assam %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_assam$X <- NULL
+d_2008_assam$Year <- NULL
+##############################################
+d_2008_up <- read.csv("spatial_up.csv")
+d_2008_up <- d_2008_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_up <- d_2008_up %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_up$X <- NULL
+d_2008_up$Year <- NULL
+#################################################3
+d_2008_wb <- read.csv("spatial_wb.csv")
+d_2008_wb <- d_2008_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_wb <- d_2008_wb %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_wb$X <- NULL
+d_2008_wb$Year <- NULL
+##############################################
+
+d_2008_goa <- read.csv("spatial_goa.csv")
+
+
+d_2008_goa <- d_2008_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2008_goa <- d_2008_goa %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2008_goa$X <- NULL
+d_2008_goa$Year <- NULL
+
+
+
+d_2008_jhar <- read.csv("spatial_jhar.csv")
+d_2008_jhar <- d_2008_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_jhar <- d_2008_jhar %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_jhar$X <- NULL
+d_2008_jhar$Year <- NULL
+############################################
+d_2008_odisha <- read.csv("spatial_odisha.csv")
+d_2008_odisha <- d_2008_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_odisha <- d_2008_odisha %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_odisha$X <- NULL
+d_2008_odisha$Year <- NULL
+##########################################
+d_2008_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2008_rajsthan <- d_2008_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_rajsthan <- d_2008_rajsthan %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_rajsthan$X <- NULL
+d_2008_rajsthan$Year <- NULL
+##########################################
+d_2008_haryana <- read.csv("spatial_haryana.csv")
+d_2008_haryana <- d_2008_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_haryana <- d_2008_haryana %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_haryana$X <- NULL
+d_2008_haryana$Year <- NULL
+###########################################
+d_2008_karnataka <- read.csv("spatial_karnataka.csv")
+d_2008_karnataka <- d_2008_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_karnataka <- d_2008_karnataka %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_karnataka$X <- NULL
+d_2008_karnataka$Year <- NULL
+##########################################33
+d_2008_mizoram <- read.csv("spatial_mizoram.csv")
+d_2008_mizoram <- d_2008_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_mizoram <- d_2008_mizoram %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_mizoram$X <- NULL
+d_2008_mizoram$Year <- NULL
+#############################################
+d_2008_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2008_uttarakhand <- d_2008_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2008_uttarakhand <- d_2008_uttarakhand %>% filter(Year == 2008) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2008_uttarakhand$X <- NULL
+d_2008_uttarakhand$Year <- NULL
+####################################3333
+d_2008 <- rbind(d_2008_delhi,d_2008,d_2008_mp,d_2008_ap,d_2008_gujarat,d_2008_assam,d_2008_up,d_2008_wb,d_2008_goa,d_2008_jhar,
+                d_2008_odisha,d_2008_rajsthan,d_2008_haryana,d_2008_karnataka,d_2008_mizoram,d_2008_uttarakhand)
+#############################################
+#colnames(d_2008)
+names(d_2008) <- c("lat", "long", "District", "RSPM.PM10")
+d_2008$Year <- 2008
+d_2008_model <- d_2008
+
+p <- st_as_sf(data.frame(long = d_2008$long, lat = d_2008$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2008[, c("x", "y")] <- st_coordinates(p)
+ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(data = d_2008, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2
+  ) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2008") + 
+  scale_color_viridis()+
+  theme_bw()
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide',fig.show='hide'}
+d_2009 <- read.csv("df_2009_spatial.csv")
+d_2009_delhi <- read.csv("delhi_spatial.csv")
+d_2009_delhi <- d_2009_delhi %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_delhi$X <- NULL
+d_2009_delhi$Year <- NULL
+d_2009 <- d_2009[, c(
+    "latitide","longitude",
+    "City.Town.Village.Area","RSPM.PM10"
+  )]
+#####################################
+d_2009_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2009_mp)
+d_2009_mp <- d_2009_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_mp <- d_2009_mp %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_mp$X <- NULL
+d_2009_mp$Year <- NULL
+########################################
+d_2009_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2009_ap)
+d_2009_ap <- d_2009_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_ap <- d_2009_ap %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_ap$X <- NULL
+d_2009_ap$Year <- NULL
+#######################################3
+d_2009_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2009_gujarat)
+d_2009_gujarat <- d_2009_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_gujarat <- d_2009_gujarat %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_gujarat$X <- NULL
+d_2009_gujarat$Year <- NULL
+###############################################
+d_2009_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2009_assam)
+d_2009_assam <- d_2009_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_assam <- d_2009_assam %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_assam$X <- NULL
+d_2009_assam$Year <- NULL
+###################################################
+d_2009_jk <- read.csv("spatial_jk.csv")
+d_2009_jk <- d_2009_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_jk <- d_2009_jk %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_jk$X <- NULL
+d_2009_jk$Year <- NULL
+######################################################
+d_2009_up <- read.csv("spatial_up.csv")
+d_2009_up <- d_2009_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_up <- d_2009_up %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_up$X <- NULL
+d_2009_up$Year <- NULL
+##################################################3
+d_2009_wb <- read.csv("spatial_wb.csv")
+d_2009_wb <- d_2009_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_wb <- d_2009_wb %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_wb$X <- NULL
+d_2009_wb$Year <- NULL
+############################################
+d_2009_goa <- read.csv("spatial_goa.csv")
+d_2009_goa <- d_2009_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_goa <- d_2009_goa %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_goa$X <- NULL
+d_2009_goa$Year <- NULL
+################################################
+d_2009_jhar <- read.csv("spatial_jhar.csv")
+d_2009_jhar <- d_2009_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_jhar <- d_2009_jhar %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_jhar$X <- NULL
+d_2009_jhar$Year <- NULL
+###############################################3
+d_2009_odisha <- read.csv("spatial_odisha.csv")
+d_2009_odisha <- d_2009_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_odisha <- d_2009_odisha %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_odisha$X <- NULL
+d_2009_odisha$Year <- NULL
+################################################3
+d_2009_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2009_rajsthan <- d_2009_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_rajsthan <- d_2009_rajsthan %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_rajsthan$X <- NULL
+d_2009_rajsthan$Year <- NULL
+################################################
+d_2009_haryana <- read.csv("spatial_haryana.csv")
+d_2009_haryana <- d_2009_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_haryana <- d_2009_haryana %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_haryana$X <- NULL
+d_2009_haryana$Year <- NULL
+#########################################3
+d_2009_karnataka <- read.csv("spatial_karnataka.csv")
+d_2009_karnataka <- d_2009_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_karnataka <- d_2009_karnataka %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_karnataka$X <- NULL
+d_2009_karnataka$Year <- NULL
+#######################################
+d_2009_mizoram <- read.csv("spatial_mizoram.csv")
+d_2009_mizoram <- d_2009_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_mizoram <- d_2009_mizoram %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_mizoram$X <- NULL
+d_2009_mizoram$Year <- NULL
+##########################################
+d_2009_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2009_uttarakhand <- d_2009_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_uttarakhand <- d_2009_uttarakhand %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_uttarakhand$X <- NULL
+d_2009_uttarakhand$Year <- NULL
+############################################
+d_2009_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+d_2009_tamil_nadu <- d_2009_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2009_tamil_nadu <- d_2009_tamil_nadu %>% filter(Year == 2009) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2009_tamil_nadu$X <- NULL
+d_2009_tamil_nadu$Year <- NULL
+##########################################
+  d_2009 <- rbind(d_2009_delhi,d_2009,d_2009_mp,d_2009_ap,d_2009_gujarat,d_2009_assam,d_2009_jk,d_2009_up,d_2009_wb,d_2009_goa,d_2009_jhar,d_2009_odisha,
+                  d_2009_rajsthan,d_2009_haryana,d_2009_karnataka,d_2009_mizoram,d_2009_uttarakhand,d_2009_tamil_nadu)
+  # colnames(d_2009)
+  names(d_2009) <- c("lat", "long", "District", "RSPM.PM10")
+  d_2009$Year <- 2009
+  d_2009_model <- d_2009
+  
+  p <- st_as_sf(data.frame(long = d_2009$long, lat = d_2009$lat),
+                coords = c("long", "lat"))
+  st_crs(p) <- st_crs(4326)
+  p <- p %>% st_transform(crs = st_crs(4326))
+  d_2009[, c("x", "y")] <- st_coordinates(p)
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+    geom_point(
+      data = d_2009, aes(x = x, y = y, color = RSPM.PM10),
+      size = 2) +
+    labs(x = "", y = "", title = "Air Pollution Distribution in Year 2009") +
+  scale_color_viridis() +
+    theme_bw()
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide',fig.show='hide'}
+
+d_2010 <- read.csv("df_2010_spatial.csv")
+d_2010 <- d_2010[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2010_mp <- read.csv("spatial_mp.csv")
+d_2010_mp <- d_2010_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_mp <- d_2010_mp %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_mp$X <- NULL
+d_2010_mp$Year <- NULL
+d_2010$Year = NULL
+#########################################3
+d_2010_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2010_ap)
+d_2010_ap <- d_2010_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_ap <- d_2010_ap %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_ap$X <- NULL
+d_2010_ap$Year <- NULL
+#########################################3
+d_2010_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2010_gujarat)
+d_2010_gujarat <- d_2010_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_gujarat <- d_2010_gujarat %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_gujarat$X <- NULL
+d_2010_gujarat$Year <- NULL
+###########################################
+d_2010_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2010_assam)
+d_2010_assam <- d_2010_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_assam <- d_2010_assam %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_assam$X <- NULL
+d_2010_assam$Year <- NULL
+##########################################
+d_2010_jk <- read.csv("spatial_jk.csv")
+d_2010_jk <- d_2010_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_jk <- d_2010_jk %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_jk$X <- NULL
+d_2010_jk$Year <- NULL
+####################################
+d_2010_up <- read.csv("spatial_up.csv")
+d_2010_up <- d_2010_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_up <- d_2010_up %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_up$X <- NULL
+d_2010_up$Year <- NULL
+####################################
+d_2010_wb <- read.csv("spatial_wb.csv")
+d_2010_wb <- d_2010_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_wb <- d_2010_wb %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_wb$X <- NULL
+d_2010_wb$Year <- NULL
+##############################3
+d_2010_goa <- read.csv("spatial_goa.csv")
+d_2010_goa <- d_2010_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_goa <- d_2010_goa %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_goa$X <- NULL
+d_2010_goa$Year <- NULL
+###############################
+d_2010_jhar <- read.csv("spatial_jhar.csv")
+d_2010_jhar <- d_2010_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_jhar <- d_2010_jhar %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_jhar$X <- NULL
+d_2010_jhar$Year <- NULL
+################################3
+d_2010_odisha <- read.csv("spatial_odisha.csv")
+d_2010_odisha <- d_2010_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_odisha <- d_2010_odisha %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_odisha$X <- NULL
+d_2010_odisha$Year <- NULL
+##################################3
+d_2010_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2010_rajsthan <- d_2010_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_rajsthan <- d_2010_rajsthan %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_rajsthan$X <- NULL
+d_2010_rajsthan$Year <- NULL
+#####################################
+d_2010_haryana <- read.csv("spatial_haryana.csv")
+d_2010_haryana <- d_2010_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_haryana <- d_2010_haryana %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_haryana$X <- NULL
+d_2010_haryana$Year <- NULL
+####################################
+d_2010_karnataka <- read.csv("spatial_karnataka.csv")
+d_2010_karnataka <- d_2010_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_karnataka <- d_2010_karnataka %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_karnataka$X <- NULL
+d_2010_karnataka$Year <- NULL
+##################################
+d_2010_mizoram <- read.csv("spatial_mizoram.csv")
+d_2010_mizoram <- d_2010_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_mizoram <- d_2010_mizoram %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_mizoram$X <- NULL
+d_2010_mizoram$Year <- NULL
+###################################
+d_2010_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2010_uttarakhand <- d_2010_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_uttarakhand <- d_2010_uttarakhand %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_uttarakhand$X <- NULL
+d_2010_uttarakhand$Year <- NULL
+#################################33
+d_2010_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+d_2010_tamil_nadu <- d_2010_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2010_tamil_nadu <- d_2010_tamil_nadu %>% filter(Year == 2010) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2010_tamil_nadu$X <- NULL
+d_2010_tamil_nadu$Year <- NULL
+####################################
+d_2010 <- rbind(d_2010,d_2010_mp,d_2010_ap,d_2010_gujarat,d_2010_assam,d_2010_jk,d_2010_up,d_2010_wb,d_2010_goa,d_2010_jhar,
+                d_2010_odisha,d_2010_rajsthan,d_2010_haryana,d_2010_karnataka,d_2010_mizoram,d_2010_uttarakhand,d_2010_tamil_nadu)
+names(d_2010) <- c("lat", "long", "District", "RSPM.PM10")
+d_2010$Year <- 2010
+d_2010_model <- d_2010
+######################################
+p <- st_as_sf(data.frame(long = d_2010$long, lat = d_2010$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2010[, c("x", "y")] <- st_coordinates(p)
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2010, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2010") +
+  scale_color_viridis() +
+  theme_bw()
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_2011 <- read.csv("df_2011_spatial.csv")
+d_2011 <- d_2011[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2011_delhi <- read.csv("delhi_spatial.csv")
+d_2011_delhi <- d_2011_delhi %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_delhi$X <- NULL
+d_2011_delhi$Year <- NULL
+#################################
+d_2011_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2011_mp)
+d_2011_mp <- d_2011_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_mp <- d_2011_mp %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_mp$X <- NULL
+d_2011_mp$Year <- NULL
+###################################
+d_2011_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2011_ap)
+d_2011_ap <- d_2011_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_ap <- d_2011_ap %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_ap$X <- NULL
+d_2011_ap$Year <- NULL
+###################################333
+d_2011_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2011_gujarat)
+d_2011_gujarat <- d_2011_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_gujarat <- d_2011_gujarat %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_gujarat$X <- NULL
+d_2011_gujarat$Year <- NULL
+#################################
+d_2011_jk <- read.csv("spatial_jk.csv")
+d_2011_jk <- d_2011_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_jk <- d_2011_jk %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_jk$X <- NULL
+d_2011_jk$Year <- NULL
+##################################3
+d_2011_up <- read.csv("spatial_up.csv")
+d_2011_up <- d_2011_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_up <- d_2011_up %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_up$X <- NULL
+d_2011_up$Year <- NULL
+###################################
+d_2011_wb <- read.csv("spatial_wb.csv")
+d_2011_wb <- d_2011_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_wb <- d_2011_wb %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_wb$X <- NULL
+d_2011_wb$Year <- NULL
+####################################
+d_2011_goa <- read.csv("spatial_goa.csv")
+d_2011_goa <- d_2011_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_goa <- d_2011_goa %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_goa$X <- NULL
+d_2011_goa$Year <- NULL
+####################################
+d_2011_jhar <- read.csv("spatial_jhar.csv")
+d_2011_jhar <- d_2011_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_jhar <- d_2011_jhar %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_jhar$X <- NULL
+d_2011_jhar$Year <- NULL
+####################################
+d_2011_odisha <- read.csv("spatial_odisha.csv")
+d_2011_odisha <- d_2011_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_odisha <- d_2011_odisha %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_odisha$X <- NULL
+d_2011_odisha$Year <- NULL
+###################################
+d_2011_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2011_rajsthan <- d_2011_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_rajsthan <- d_2011_rajsthan %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_rajsthan$X <- NULL
+d_2011_rajsthan$Year <- NULL
+####################################
+d_2011_haryana <- read.csv("spatial_haryana.csv")
+d_2011_haryana <- d_2011_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_haryana <- d_2011_haryana %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_haryana$X <- NULL
+d_2011_haryana$Year <- NULL
+#######################################
+d_2011_karnataka <- read.csv("spatial_karnataka.csv")
+d_2011_karnataka <- d_2011_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_karnataka <- d_2011_karnataka %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_karnataka$X <- NULL
+d_2011_karnataka$Year <- NULL
+#######################################
+d_2011_mizoram <- read.csv("spatial_mizoram.csv")
+d_2011_mizoram <- d_2011_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_mizoram <- d_2011_mizoram %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_mizoram$X <- NULL
+d_2011_mizoram$Year <- NULL
+#####################################
+d_2011_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2011_uttarakhand <- d_2011_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_uttarakhand <- d_2011_uttarakhand %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_uttarakhand$X <- NULL
+d_2011_uttarakhand$Year <- NULL
+########################################3
+d_2011_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+d_2011_tamil_nadu <- d_2011_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_tamil_nadu <- d_2011_tamil_nadu %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_tamil_nadu$X <- NULL
+d_2011_tamil_nadu$Year <- NULL
+###################################3
+d_2011_assam <- read.csv("spatial_assam.csv")
+d_2011_assam <- d_2011_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_assam <- d_2011_assam %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_assam$X <- NULL
+d_2011_assam$Year <- NULL
+######################################
+d_2011_ap <- read.csv("spatial_ap.csv")
+d_2011_ap <- d_2011_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2011_ap <- d_2011_ap %>% filter(Year == 2011) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2011_ap$X <- NULL
+d_2011_ap$Year <- NULL
+##################################
+d_2011 <- rbind(d_2011_ap,d_2011_assam,d_2011_delhi,d_2011,d_2011_mp,d_2011_ap,d_2011_gujarat,d_2011_jk,d_2011_up,d_2011_wb,d_2011_goa,d_2011_jhar,
+                d_2011_odisha,d_2011_rajsthan,d_2011_haryana,d_2011_karnataka,d_2011_mizoram,d_2011_uttarakhand,d_2011_tamil_nadu)
+#colnames(d_2011)
+names(d_2011) <- c("lat", "long", "District", "RSPM.PM10")
+d_2011$Year <- 2011
+d_2011_model <- d_2011
+p <- st_as_sf(data.frame(long = d_2011$long, lat = d_2011$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2011[, c("x", "y")] <- st_coordinates(p)
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2011, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2011") +
+  scale_color_viridis() +
+  theme_bw()
+
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide',fig.show='hide'}
+
+d_2012 <- read.csv("df_2012_spatial.csv")
+d_2012 <- d_2012[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2012_delhi <- read.csv("delhi_spatial.csv")
+d_2012_delhi <- d_2012_delhi %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_delhi$X <- NULL
+d_2012_delhi$Year <- NULL
+############################################3
+d_2012_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2012_mp)
+d_2012_mp <- d_2012_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_mp <- d_2012_mp %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_mp$X <- NULL
+d_2012_mp$Year <- NULL
+##############################################
+d_2012_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2012_ap)
+d_2012_ap <- d_2012_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_ap <- d_2012_ap %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_ap$X <- NULL
+d_2012_ap$Year <- NULL
+#########################################3
+d_2012_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2012_gujarat)
+d_2012_gujarat <- d_2012_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_gujarat <- d_2012_gujarat %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_gujarat$X <- NULL
+d_2012_gujarat$Year <- NULL
+############################333
+d_2012_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2012_assam)
+d_2012_assam <- d_2012_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_assam <- d_2012_assam %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_assam$X <- NULL
+d_2012_assam$Year <- NULL
+###################################3
+d_2012_jk <- read.csv("spatial_jk.csv")
+d_2012_jk <- d_2012_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_jk <- d_2012_jk %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_jk$X <- NULL
+d_2012_jk$Year <- NULL
+#####################################
+d_2012_up <- read.csv("spatial_up.csv")
+d_2012_up <- d_2012_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_up <- d_2012_up %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_up$X <- NULL
+d_2012_up$Year <- NULL
+########################################
+d_2012_wb <- read.csv("spatial_wb.csv")
+d_2012_wb <- d_2012_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_wb <- d_2012_wb %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_wb$X <- NULL
+d_2012_wb$Year <- NULL
+#######################################
+d_2012_goa <- read.csv("spatial_goa.csv")
+d_2012_goa <- d_2012_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_goa <- d_2012_goa %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_goa$X <- NULL
+d_2012_goa$Year <- NULL
+#######################################
+d_2012_jhar <- read.csv("spatial_jhar.csv")
+d_2012_jhar <- d_2012_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_jhar <- d_2012_jhar %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_jhar$X <- NULL
+d_2012_jhar$Year <- NULL
+#######################################
+d_2012_odisha <- read.csv("spatial_odisha.csv")
+d_2012_odisha <- d_2012_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_odisha <- d_2012_odisha %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_odisha$X <- NULL
+d_2012_odisha$Year <- NULL
+##########################################
+d_2012_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2012_rajsthan <- d_2012_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_rajsthan <- d_2012_rajsthan %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_rajsthan$X <- NULL
+d_2012_rajsthan$Year <- NULL
+#######################################3
+d_2012_haryana <- read.csv("spatial_haryana.csv")
+d_2012_haryana <- d_2012_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_haryana <- d_2012_haryana %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_haryana$X <- NULL
+d_2012_haryana$Year <- NULL
+#######################################3
+d_2012_karnataka <- read.csv("spatial_karnataka.csv")
+d_2012_karnataka <- d_2012_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_karnataka <- d_2012_karnataka %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_karnataka$X <- NULL
+d_2012_karnataka$Year <- NULL
+######################################
+d_2012_mizoram <- read.csv("spatial_mizoram.csv")
+d_2012_mizoram <- d_2012_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_mizoram <- d_2012_mizoram %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_mizoram$X <- NULL
+d_2012_mizoram$Year <- NULL
+#####################################
+d_2012_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2012_uttarakhand <- d_2012_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_uttarakhand <- d_2012_uttarakhand %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_uttarakhand$X <- NULL
+d_2012_uttarakhand$Year <- NULL
+####################################
+d_2012_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+d_2012_tamil_nadu <- d_2012_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2012_tamil_nadu <- d_2012_tamil_nadu %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2012_tamil_nadu$X <- NULL
+d_2012_tamil_nadu$Year <- NULL
+####################################3
+d_2012 <- rbind(d_2012_delhi,d_2012,d_2012_mp,d_2012_ap,d_2012_gujarat,d_2012_assam,d_2012_jk,d_2012_up,d_2012_wb,d_2012_goa,d_2012_jhar,
+                d_2012_odisha,d_2012_rajsthan,d_2012_haryana,d_2012_karnataka,d_2012_mizoram,d_2012_uttarakhand,d_2012_tamil_nadu)
+#colnames(d_2012)
+names(d_2012) <- c("lat", "long", "District", "RSPM.PM10")
+d_2012$Year <- 2012
+d_2012_model <- d_2012
+p <- st_as_sf(data.frame(long = d_2012$long, lat = d_2012$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2012[, c("x", "y")] <- st_coordinates(p)
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2012, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2012") +
+  scale_color_viridis() +
+  theme_bw()
+
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide',fig.show='hide'}
+
+d_2013 <- read.csv("df_2013_spatial.csv")
+d_2013 <- d_2013[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2013_delhi <- read.csv("delhi_spatial.csv")
+d_2013_delhi <- d_2013_delhi %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_delhi$X <- NULL
+d_2013_delhi$Year <- NULL
+###############################
+d_2013_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2013_mp)
+d_2013_mp <- d_2013_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_mp <- d_2013_mp %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2013_mp$X <- NULL
+d_2013_mp$Year <- NULL
+#################################
+d_2013_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2013_ap)
+d_2013_ap <- d_2013_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_ap <- d_2013_ap %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_ap$X <- NULL
+d_2013_ap$Year <- NULL
+#################################
+d_2013_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2013_gujarat)
+d_2013_gujarat <- d_2013_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_gujarat <- d_2013_gujarat %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_gujarat$X <- NULL
+d_2013_gujarat$Year <- NULL
+####################################
+d_2013_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2013_assam)
+d_2013_assam <- d_2013_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_assam <- d_2013_assam %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_assam$X <- NULL
+d_2013_assam$Year <- NULL
+###################################
+d_2013_jk <- read.csv("spatial_jk.csv")
+d_2013_jk <- d_2013_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2013_jk <- d_2013_jk %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_jk$X <- NULL
+d_2013_jk$Year <- NULL
+#################################
+d_2013_up <- read.csv("spatial_up.csv")
+d_2013_up <- d_2013_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_up <- d_2013_up %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_up$X <- NULL
+d_2013_up$Year <- NULL
+###################################
+d_2013_wb <- read.csv("spatial_wb.csv")
+d_2013_wb <- d_2013_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_wb <- d_2013_wb %>% filter(Year == 2012) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_wb$X <- NULL
+d_2013_wb$Year <- NULL
+####################################
+d_2013_goa <- read.csv("spatial_goa.csv")
+d_2013_goa <- d_2013_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_goa <- d_2013_goa %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_goa$X <- NULL
+d_2013_goa$Year <- NULL
+######################################
+d_2013_jhar <- read.csv("spatial_jhar.csv")
+d_2013_jhar <- d_2013_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_jhar <- d_2013_jhar %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_jhar$X <- NULL
+d_2013_jhar$Year <- NULL
+####################################
+d_2013_odisha <- read.csv("spatial_odisha.csv")
+d_2013_odisha <- d_2013_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_odisha <- d_2013_odisha %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_odisha$X <- NULL
+d_2013_odisha$Year <- NULL
+######################################
+d_2013_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2013_rajsthan <- d_2013_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_rajsthan <- d_2013_rajsthan %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_rajsthan$X <- NULL
+d_2013_rajsthan$Year <- NULL
+######################################
+d_2013_haryana <- read.csv("spatial_haryana.csv")
+d_2013_haryana <- d_2013_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2013_haryana <- d_2013_haryana %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2013_haryana$X <- NULL
+d_2013_haryana$Year <- NULL
+
+
+########################################
+
+d_2013_karnataka <- read.csv("spatial_karnataka.csv")
+
+
+d_2013_karnataka <- d_2013_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2013_karnataka <- d_2013_karnataka %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2013_karnataka$X <- NULL
+d_2013_karnataka$Year <- NULL
+
+
+########################################
+
+d_2013_mizoram <- read.csv("spatial_mizoram.csv")
+
+
+d_2013_mizoram <- d_2013_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2013_mizoram <- d_2013_mizoram %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2013_mizoram$X <- NULL
+d_2013_mizoram$Year <- NULL
+
+#########################################
+d_2013_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+
+
+d_2013_uttarakhand <- d_2013_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2013_uttarakhand <- d_2013_uttarakhand %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2013_uttarakhand$X <- NULL
+d_2013_uttarakhand$Year <- NULL
+
+
+######################################
+d_2013_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+
+
+d_2013_tamil_nadu <- d_2013_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+
+d_2013_tamil_nadu <- d_2013_tamil_nadu %>% filter(Year == 2013) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+
+d_2013_tamil_nadu$X <- NULL
+d_2013_tamil_nadu$Year <- NULL
+
+
+
+####################################3
+
+d_2013 <- rbind(d_2013_delhi,d_2013,d_2013_mp,d_2008_ap,d_2013_gujarat,d_2013_assam,d_2013_jk,d_2013_up,d_2013_wb,d_2013_goa,d_2013_jhar,
+                d_2013_odisha,d_2013_rajsthan,d_2013_haryana,d_2013_karnataka,d_2013_mizoram,d_2013_uttarakhand,d_2013_tamil_nadu)
+
+
+#colnames(d_2013)
+names(d_2013) <- c("lat", "long", "District", "RSPM.PM10")
+
+d_2013$Year <- 2013
+d_2013_model <- d_2013
+
+p <- st_as_sf(data.frame(long = d_2013$long, lat = d_2013$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2013[, c("x", "y")] <- st_coordinates(p)
+
+
+
+ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2013, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2013") +
+  scale_color_viridis() +
+  theme_bw()
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide',fig.show='hide'}
+
+d_2014 <- read.csv("df_2014_spatial.csv")
+d_2014 <- d_2014[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2014_delhi <- read.csv("delhi_spatial.csv")
+d_2014_delhi <- d_2014_delhi %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_delhi$X <- NULL
+d_2014_delhi$Year <- NULL
+##########################################3
+d_2014_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2014_mp)
+d_2014_mp <- d_2014_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_mp <- d_2014_mp %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_mp$X <- NULL
+d_2014_mp$Year <- NULL
+########################################3
+d_2014_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2014_ap)
+d_2014_ap <- d_2014_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_ap <- d_2014_ap %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_ap$X <- NULL
+d_2014_ap$Year <- NULL
+########################################
+d_2014_gujarat <- read.csv("spatial_gujarat.csv")
+#colnames(d_2014_gujarat)
+d_2014_gujarat <- d_2014_gujarat[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_gujarat <- d_2014_gujarat %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_gujarat$X <- NULL
+d_2014_gujarat$Year <- NULL
+##########################################
+d_2014_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2014_assam)
+d_2014_assam <- d_2014_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_assam <- d_2014_assam %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_assam$X <- NULL
+d_2014_assam$Year <- NULL
+###########################################
+d_2014_jk <- read.csv("spatial_jk.csv")
+d_2014_jk <- d_2014_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_jk <- d_2014_jk %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_jk$X <- NULL
+d_2014_jk$Year <- NULL
+##############################################
+d_2014_up <- read.csv("spatial_up.csv")
+d_2014_up <- d_2014_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_up <- d_2014_up %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_up$X <- NULL
+d_2014_up$Year <- NULL
+#########################################
+d_2014_wb <- read.csv("spatial_wb.csv")
+d_2014_wb <- d_2014_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_wb <- d_2014_wb %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_wb$X <- NULL
+d_2014_wb$Year <- NULL
+#########################################3
+d_2014_goa <- read.csv("spatial_goa.csv")
+d_2014_goa <- d_2014_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_goa <- d_2014_goa %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_goa$X <- NULL
+d_2014_goa$Year <- NULL
+#######################################
+d_2014_jhar <- read.csv("spatial_jhar.csv")
+d_2014_jhar <- d_2014_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_jhar <- d_2014_jhar %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_jhar$X <- NULL
+d_2014_jhar$Year <- NULL
+#####################################
+d_2014_odisha <- read.csv("spatial_odisha.csv")
+d_2014_odisha <- d_2014_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_odisha <- d_2014_odisha %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_odisha$X <- NULL
+d_2014_odisha$Year <- NULL
+#######################################
+d_2014_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2014_rajsthan <- d_2014_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_rajsthan <- d_2014_rajsthan %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_rajsthan$X <- NULL
+d_2014_rajsthan$Year <- NULL
+######################################
+d_2014_haryana <- read.csv("spatial_haryana.csv")
+d_2014_haryana <- d_2014_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_haryana <- d_2014_haryana %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_haryana$X <- NULL
+d_2014_haryana$Year <- NULL
+########################################
+d_2014_karnataka <- read.csv("spatial_karnataka.csv")
+d_2014_karnataka <- d_2014_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_karnataka <- d_2014_karnataka %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_karnataka$X <- NULL
+d_2014_karnataka$Year <- NULL
+###########################################
+d_2014_mizoram <- read.csv("spatial_mizoram.csv")
+d_2014_mizoram <- d_2014_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_mizoram <- d_2014_mizoram %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_mizoram$X <- NULL
+d_2014_mizoram$Year <- NULL
+#####################################
+d_2014_tamil_nadu <- read.csv("spatial_tamil_nadu.csv")
+d_2014_tamil_nadu <- d_2014_tamil_nadu[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2014_tamil_nadu <- d_2014_tamil_nadu %>% filter(Year == 2014) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2014_tamil_nadu$X <- NULL
+d_2014_tamil_nadu$Year <- NULL
+###########################################
+d_2014 <- rbind(d_2014_delhi,d_2014,d_2014_mp,d_2014_ap,d_2014_gujarat,d_2014_assam,d_2014_jk,d_2014_up,d_2014_wb,d_2014_goa,d_2014_jhar,
+                d_2014_odisha,d_2014_rajsthan,d_2014_haryana,d_2014_karnataka,d_2014_mizoram,d_2014_tamil_nadu )
+#colnames(d_2014)
+names(d_2014) <- c("lat", "long", "District", "RSPM.PM10")
+d_2014$Year <- 2014
+d_2014_model <- d_2014
+p <- st_as_sf(data.frame(long = d_2014$long, lat = d_2014$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2014[, c("x", "y")] <- st_coordinates(p)
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2014, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2014") +
+  scale_color_viridis() +
+  theme_bw()
+
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+
+d_2015 <- read.csv("df_2015_spatial.csv")
+d_2015 <- d_2015[, c(
+  "latitide","longitude",
+  "City.Town.Village.Area","RSPM.PM10"
+)]
+d_2015_delhi <- read.csv("delhi_spatial.csv")
+d_2015_delhi <- d_2015_delhi %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_delhi$X <- NULL
+d_2015_delhi$Year <- NULL
+##################################################
+d_2015_ap <- read.csv("spatial_ap.csv")
+#colnames(d_2015_ap)
+d_2015_ap <- d_2015_ap[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_ap <- d_2015_ap %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_ap$X <- NULL
+d_2015_ap$Year <- NULL
+#################################################
+d_2015_mp <- read.csv("spatial_mp.csv")
+#colnames(d_2015_mp)
+d_2015_mp <- d_2015_mp[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_mp <- d_2015_mp %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_mp$X <- NULL
+d_2015_mp$Year <- NULL
+#################################################
+d_2015_assam <- read.csv("spatial_assam.csv")
+#colnames(d_2015_assam)
+d_2015_assam <- d_2015_assam[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_assam <- d_2015_assam %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_assam$X <- NULL
+d_2015_assam$Year <- NULL
+###################################################
+d_2015_jk <- read.csv("spatial_jk.csv")
+d_2015_jk <- d_2015_jk[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_jk <- d_2015_jk %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_jk$X <- NULL
+d_2015_jk$Year <- NULL
+###########################################
+d_2015_up <- read.csv("spatial_up.csv")
+d_2015_up <- d_2015_up[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_up <- d_2015_up %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_up$X <- NULL
+d_2015_up$Year <- NULL
+########################################
+d_2015_wb <- read.csv("spatial_wb.csv")
+d_2015_wb <- d_2015_wb[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_wb <- d_2015_wb %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_wb$X <- NULL
+d_2015_wb$Year <- NULL
+##########################################
+d_2015_goa <- read.csv("spatial_goa.csv")
+d_2015_goa <- d_2015_goa[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_goa <- d_2015_goa %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_goa$X <- NULL
+d_2015_goa$Year <- NULL
+###########################################
+d_2015_jhar <- read.csv("spatial_jhar.csv")
+d_2015_jhar <- d_2015_jhar[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_jhar <- d_2015_jhar %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_jhar$X <- NULL
+d_2015_jhar$Year <- NULL
+###########################################
+d_2015_odisha <- read.csv("spatial_odisha.csv")
+d_2015_odisha <- d_2015_odisha[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_odisha <- d_2015_odisha %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_odisha$X <- NULL
+d_2015_odisha$Year <- NULL
+#############################################
+d_2015_rajsthan <- read.csv("spatial_rajsthan.csv")
+d_2015_rajsthan <- d_2015_rajsthan[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_rajsthan <- d_2015_rajsthan %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_rajsthan$X <- NULL
+d_2015_rajsthan$Year <- NULL
+###############################################
+d_2015_haryana <- read.csv("spatial_haryana.csv")
+d_2015_haryana <- d_2015_haryana[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_haryana <- d_2015_haryana %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_haryana$X <- NULL
+d_2015_haryana$Year <- NULL
+##############################################
+d_2015_karnataka <- read.csv("spatial_karnataka.csv")
+d_2015_karnataka <- d_2015_karnataka[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_karnataka <- d_2015_karnataka %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_karnataka$X <- NULL
+d_2015_karnataka$Year <- NULL
+###########################################
+d_2015_mizoram <- read.csv("spatial_mizoram.csv")
+d_2015_mizoram <- d_2015_mizoram[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_mizoram <- d_2015_mizoram %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_mizoram$X <- NULL
+d_2015_mizoram$Year <- NULL
+###########################################
+d_2015_uttarakhand <- read.csv("spatial_uttarakhand.csv")
+d_2015_uttarakhand <- d_2015_uttarakhand[, c(
+  "Latitude","Longitude",
+  "Monitoring.Station","RSPM.PM10","Year"
+)]
+d_2015_uttarakhand <- d_2015_uttarakhand %>% filter(Year == 2015) %>% rename(City.Town.Village.Area = 'Monitoring.Station', longitude = 'Longitude', latitide = 'Latitude') %>% 
+  relocate(latitide,longitude,City.Town.Village.Area,RSPM.PM10)
+d_2015_uttarakhand$X <- NULL
+d_2015_uttarakhand$Year <- NULL
+##########################################3
+d_2015 <- rbind(d_2015_delhi,d_2015,d_2015_mp,d_2015_ap,d_2015_assam,d_2015_jk,d_2015_up,d_2015_wb,d_2015_goa,d_2015_jhar,
+                d_2015_odisha,d_2015_rajsthan,d_2015_haryana,d_2015_karnataka,d_2015_mizoram,d_2015_uttarakhand)
+#colnames(d_2015)
+names(d_2015) <- c("lat", "long", "District", "RSPM.PM10")
+d_2015$Year <- 2015
+d_2015_model <- d_2015
+p <- st_as_sf(data.frame(long = d_2015$long, lat = d_2015$lat),
+              coords = c("long", "lat"))
+st_crs(p) <- st_crs(4326)
+p <- p %>% st_transform(crs = st_crs(4326))
+d_2015[, c("x", "y")] <- st_coordinates(p)
+breaks <- c(0, 50, 100, 150, 200, 300, Inf)
+# Labels for the bins
+labels <- c("0-49", "50-99", "100-149", "150-199", "200-299", "300+")
+ ggplot(m) + geom_sf() + coord_sf(datum = NA) +
+  geom_point(
+    data = d_2015, aes(x = x, y = y, color = RSPM.PM10),
+    size = 2) +
+  labs(x = "", y = "", title = "Air Pollution Distribution in Year 2015") +
+  scale_color_viridis() +
+  theme_bw()
+
+
+
+
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+d <- rbind(d_2008,d_2009,d_2010,d_2011,d_2012,d_2013,d_2014,d_2015)
+d_summary_model <- d %>% rename(Location = "District")
+d_summary_model$x <- NULL
+d_summary_model$y <- NULL
+#summary(d_summary_model)
+
+library(knitr)
+knitr::kable(summary(d_summary_model), "pipe")
+
+
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+
+```
+

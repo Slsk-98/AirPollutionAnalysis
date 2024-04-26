@@ -1,0 +1,201 @@
+---
+title: "Dissertation_Statistical_Modeling"
+author: "Sreelekshmi_Sreekumar"
+date: "2023-08-22"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+library(tidyverse)
+library(mgcv)
+library(stats)
+library(MASS)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+d_2008 <- read.csv("2008_apm.csv")
+d_2009 <- read.csv("2009_apm.csv")
+d_2010 <- read.csv("2010_apm.csv")
+d_2011 <- read.csv("2011_apm.csv")
+d_2012 <- read.csv("2012_apm.csv")
+d_2013 <- read.csv("2013_apm.csv")
+d_2014 <- read.csv("2014_apm.csv")
+d_2015 <- read.csv("2015_apm.csv")
+health <- rbind(d_2008,d_2009,d_2010,d_2011,d_2012,d_2013,d_2014,d_2015)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+delhi <- read.csv("ts_year_delhi.csv")
+delhi_health <- health %>% filter(Location == "Delhi")
+health_pollution_delhi <- cbind(delhi_health$Value,delhi$RSPM.PM10,delhi$Year)
+health_pollution_delhi <- as.data.frame(health_pollution_delhi)
+health_pollution_delhi <- health_pollution_delhi %>% rename(Deaths = V1, RSPM.PM10 = V2, Year = V3)
+plot(health_pollution_delhi$RSPM.PM10,health_pollution_delhi$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title("PM10 V/S Death Rate for Delhi")
+cor(health_pollution_delhi$RSPM.PM10, health_pollution_delhi$Deaths,  method = "pearson")
+d <- lm(Deaths ~ RSPM.PM10, health_pollution_delhi)
+summary(d)
+plot(d,1)
+plot(d,2)
+poisson_model_delhi <- glm(Deaths ~ RSPM.PM10, health_pollution_delhi, family = poisson(link = "log"))
+summary(poisson_model_delhi)
+plot(poisson_model_delhi,2)
+AIC(poisson_model_delhi)
+poisson_model_delhi_q <- glm(Deaths ~ RSPM.PM10, health_pollution_delhi, family = quasipoisson(link = "log"))
+summary(poisson_model_delhi_q)
+plot(poisson_model_delhi_q,2)
+poisson_model1_delhi <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), health_pollution_delhi, family = poisson(link = "log"))
+summary(poisson_model1_delhi)
+poisson_model2_delhi <- gam(Deaths ~  s(RSPM.PM10, k=4, bs = "cs"), health_pollution_delhi, family = quasi(link = "log"))
+summary(poisson_model2_delhi)
+gam.check(poisson_model2_delhi)
+anova(poisson_model2_delhi,poisson_model1_delhi)
+```
+
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+kerala <- read.csv("ts_year_kerala.csv")
+kerala_health <- health %>% filter(Location =="Kerala")
+health_pollution_kerala <- cbind(kerala_health$Value,kerala$RSPM.PM10,kerala$Year)
+health_pollution_kerala <- as.data.frame(health_pollution_kerala)
+health_pollution_kerala <- health_pollution_kerala %>% rename(Deaths = V1, RSPM.PM10 = V2, Year = V3)
+plot(health_pollution_kerala$RSPM.PM10,health_pollution_kerala$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title("PM10 V/S Death Rate for Kerala")
+cor(health_pollution_kerala$RSPM.PM10, health_pollution_kerala$Deaths,  method = "pearson")
+k <- lm(Deaths ~ RSPM.PM10, health_pollution_kerala)
+summary(k)
+plot(k,2)
+poisson_model_kerala <- glm(Deaths ~ RSPM.PM10, health_pollution_kerala, family = poisson(link = "log"))
+summary(poisson_model_kerala)
+AIC(poisson_model_kerala)
+poisson_model_kerala_q <- glm(Deaths ~ RSPM.PM10, health_pollution_kerala, family = quasipoisson(link = "log"))
+summary(poisson_model_kerala)
+AIC(poisson_model_kerala_q)
+poisson_model1_kerala <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), health_pollution_kerala, family = poisson(link = "log"))
+summary(poisson_model1_kerala)
+AIC(poisson_model1_kerala)
+poisson_model2_kerala <- gam(Deaths ~  s(RSPM.PM10, k=4, bs = "cs"), health_pollution_kerala, family = quasipoisson(link = "log"))
+summary(poisson_model2_kerala)
+AIC(poisson_model2_kerala)
+```
+
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+jk <- read.csv("ts_year_jk.csv")
+jk_health <- health %>% filter(Location =="Jammu & Kashmir and Ladakh")
+health_pollution_jk <- na.omit(cbind(jk_health$Value,jk$RSPM.PM10,jk$Year))
+health_pollution_jk <- as.data.frame(health_pollution_jk)
+health_pollution_jk <- health_pollution_jk %>% rename(Deaths = V1, RSPM.PM10 = V2, Year = V3)
+plot(health_pollution_jk$RSPM.PM10,health_pollution_jk$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title("PM10 V/S Death Rate for Jammu & Kashmir")
+cor(health_pollution_jk$Deaths, health_pollution_jk$RSPM.PM10,  method = "pearson")
+j <- lm(Deaths ~ RSPM.PM10, health_pollution_jk)
+summary(j)
+plot(j,2)
+poisson_model_jk <- glm(Deaths ~ RSPM.PM10, health_pollution_jk, family = poisson(link = "log"))
+summary(poisson_model_jk)
+poisson_model_jk_q <- glm(Deaths ~ RSPM.PM10, health_pollution_jk, family = quasipoisson(link = "log"))
+summary(poisson_model_jk_q)
+poisson_model1_jk <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), health_pollution_jk, family = poisson(link = "log"))
+summary(poisson_model1_jk)
+set.seed(123)
+train_indices <- sample(1:nrow(health_pollution_jk), 0.8 * nrow(health_pollution_jk))
+train_data <- health_pollution_jk[train_indices, ]
+test_data <- health_pollution_jk[-train_indices, ]
+poisson_model2_jk <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), health_pollution_jk, family = quasipoisson(link = "log"))
+summary(poisson_model2_jk)
+gam.check(poisson_model2_jk)
+AIC(poisson_model2_jk)
+gam.check(poisson_model2_jk)
+poisson_model2_jk <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), train_data, family = quasipoisson(link = "log"))
+summary(poisson_model2_jk)
+prediction <- predict(poisson_model2_jk, newdata = test_data, type = "response")
+print(prediction)
+print(test_data$Deaths)
+```
+
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide', fig.show='hide'}
+tamil_nadu <- read.csv("ts_year_tamil_nadu.csv")
+health <- rbind(d_2008,d_2009,d_2010,d_2011,d_2012,d_2013,d_2014,d_2015)
+tamil_nadu_health <- health %>% filter(Location =="Tamil Nadu")
+health_pollution_tamil_nadu <- cbind(tamil_nadu_health$Value,tamil_nadu$RSPM.PM10,tamil_nadu$Year)
+health_pollution_tamil_nadu <- as.data.frame(health_pollution_tamil_nadu)
+health_pollution_tamil_nadu <- health_pollution_tamil_nadu %>% rename(Deaths = V1, RSPM.PM10 = V2, Year = V3)
+plot(health_pollution_tamil_nadu$RSPM.PM10,health_pollution_tamil_nadu$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title("PM10 V/S Death Rate for Tamil Nadu")
+cor(health_pollution_tamil_nadu$Deaths, health_pollution_tamil_nadu$RSPM.PM10,  method = "pearson")
+t <- lm(Deaths ~ RSPM.PM10, health_pollution_tamil_nadu)
+summary(t)
+plot(t,2)
+poisson_model_tamil_nadu <- glm(Deaths ~ RSPM.PM10, health_pollution_tamil_nadu, family = poisson(link = "log"))
+summary(poisson_model_tamil_nadu)
+poisson_model_tamil_nadu_q <- glm(Deaths ~ RSPM.PM10, health_pollution_tamil_nadu, family = quasipoisson(link = "log"))
+summary(poisson_model_tamil_nadu_q)
+poisson_model1_tamil_nadu <- gam(Deaths ~ s(RSPM.PM10, k=4, bs = "cs"), health_pollution_tamil_nadu, family = poisson(link = "log"))
+summary(poisson_model1_tamil_nadu)
+set.seed(123)
+train_indices <- sample(1:nrow(health_pollution_tamil_nadu), 0.8 * nrow(health_pollution_tamil_nadu))
+train_data <- health_pollution_tamil_nadu[train_indices, ]
+test_data <- health_pollution_tamil_nadu[-train_indices, ]
+poisson_model2_tamil_nadu <- gam(Deaths ~ s(RSPM.PM10, k=5, bs = "cs"), health_pollution_tamil_nadu, family = quasipoisson(link = "log"))
+summary(poisson_model2_tamil_nadu)
+poisson_model2_tamil_nadu <- gam(Deaths ~ s(RSPM.PM10, k = 5, bs = "cs"), train_data, family = quasipoisson(link = "log"))
+summary(poisson_model2_tamil_nadu)
+gam.check(poisson_model1_tamil_nadu)
+prediction <- predict(poisson_model2_tamil_nadu, newdata = test_data, type = "response")
+print(prediction)
+print(test_data$Deaths)
+
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+par(mfrow = c(1,2))
+plot(health_pollution_kerala$RSPM.PM10,health_pollution_kerala$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title(" Kerala")
+plot(health_pollution_delhi$RSPM.PM10,health_pollution_delhi$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title("Delhi")
+plot(health_pollution_jk$RSPM.PM10,health_pollution_jk$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title(" Jammu & Kashmir")
+plot(health_pollution_tamil_nadu$RSPM.PM10,health_pollution_tamil_nadu$Deaths, xlab = "PM10 Level", ylab = "Death Rate", )
+title(" Tamil Nadu")
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Tamil Nadu
+tab <- matrix(c(47.86154,42.36619, 62.05057 , 54.18633), ncol=2, byrow=TRUE)
+colnames(tab) <- c('Predicted','Actual')
+tab <- as.table(tab)
+print(tab)
+library(knitr)
+knitr::kable(tab, "pipe")
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE }
+
+# Jammu & Kashmir
+tab <- matrix(c(50.65848,49.01461, 52.34006, 58.56139), ncol=2, byrow=TRUE)
+colnames(tab) <- c('Predicted','Actual')
+tab <- as.table(tab)
+library(knitr)
+knitr::kable(tab, "pipe")
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+
+```
+
